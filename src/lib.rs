@@ -266,6 +266,15 @@ fn apply_changefile(
     let mut result = Vec::new();
     let mut weblines = VecDeque::from(weblines);
 
+    fn trim_trailing_spaces(mut line: &[u8]) -> &[u8] {
+        while line.len() > 0 && line[line.len() - 1].is_ascii_whitespace() {
+            line = &line[..line.len() - 1]
+        }
+        line
+    }
+    fn eq_line(webline: &[u8], oldline: &[u8]) -> bool {
+        trim_trailing_spaces(webline) == trim_trailing_spaces(oldline)
+    }
     fn match_position(weblines: &VecDeque<FileLine>, oldlines: &Vec<FileLine>) -> Option<usize> {
         if weblines.len() < oldlines.len() {
             return None;
@@ -275,7 +284,8 @@ fn apply_changefile(
                 .range(i..)
                 .take(oldlines.len())
                 .map(|l| &l.contents)
-                .eq(oldlines.iter().map(|l| &l.contents))
+                .zip(oldlines.iter().map(|l| &l.contents))
+                .all(|(w, o)| eq_line(w, o))
             {
                 return Some(i);
             }
